@@ -4,6 +4,7 @@ import sqlite3
 import plotly.express as px
 from datetime import datetime, date, timedelta
 import os, hashlib, io, json
+import subprocess, tempfile
 from fpdf import FPDF
 
 st.set_page_config(page_title="LeadNest", page_icon="🪺", layout="wide", initial_sidebar_state="expanded")
@@ -70,7 +71,14 @@ LANGS = {
            "dark_mode": "Dark Mode", "language": "Language", "notifications": "Notifications",
            "activity_log": "Activity Log", "tax_report": "Tax Report", "profit_analysis": "Profit Analysis",
            "recurring": "Recurring Invoices", "schema": "Database Schema", "currency": "Currency",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "AI Bots", "ai_calculations": "AI Calculations", "ai_alerts": "Smart Alerts",
+           "ai_predictions": "Predictions", "ai_sales_coach": "Sales Coach", "ai_email_writer": "Email Writer",
+           "ai_insights": "Insights", "ai_proposal": "Proposal Writer", "ai_assistant": "CRM Assistant",
+           "ai_revenue_forecast": "Revenue Forecast", "ai_lead_score": "Lead Score", "ai_churn_risk": "Churn Risk",
+           "ai_tax": "Tax Calculator", "ai_margin": "Profit Margin", "ai_breakeven": "Break-even",
+           "ai_hourly_cost": "Hourly Cost", "ai_send": "Send", "ai_reply": "Reply", "ai_typing": "Thinking...",
+           "ai_disclaimer": "AI-generated. Always review before sending to clients."},
     "de": {"name": "Deutsch", "app_name": "LeadNest", "dashboard": "Dashboard", "clients": "Kunden", "leads": "Leads",
            "projects": "Projekte", "payments": "Zahlungen", "expenses": "Ausgaben", "time": "Zeiterfassung",
            "tasks": "Aufgaben", "reminders": "Erinnerungen", "reports": "Berichte", "calendar": "Kalender",
@@ -83,7 +91,14 @@ LANGS = {
            "dark_mode": "Dunkelmodus", "language": "Sprache", "notifications": "Benachrichtigungen",
            "activity_log": "Aktivitätsprotokoll", "tax_report": "Steuerbericht", "profit_analysis": "Gewinnanalyse",
            "recurring": "Wiederkehrende Rechnungen", "schema": "Datenbankschema", "currency": "Währung",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "KI-Bots", "ai_calculations": "KI-Berechnungen", "ai_alerts": "Smart Alerts",
+           "ai_predictions": "Vorhersagen", "ai_sales_coach": "Verkaufscoach", "ai_email_writer": "E-Mail-Schreiber",
+           "ai_insights": "Einblicke", "ai_proposal": "Angebotsschreiber", "ai_assistant": "CRM-Assistent",
+           "ai_revenue_forecast": "Umsatzprognose", "ai_lead_score": "Lead-Score", "ai_churn_risk": "Abwanderungsrisiko",
+           "ai_tax": "Steuerrechner", "ai_margin": "Gewinnmarge", "ai_breakeven": "Break-even",
+           "ai_hourly_cost": "Stundenkosten", "ai_send": "Senden", "ai_reply": "Antwort", "ai_typing": "Denke nach...",
+           "ai_disclaimer": "KI-generiert. Vor dem Senden an Kunden immer prüfen."},
     "ur": {"name": "اردو", "app_name": "LeadNest", "dashboard": "ڈیش بورڈ", "clients": "کلائنٹس", "leads": "لیڈز",
            "projects": "پروجیکٹس", "payments": "ادائیگیاں", "expenses": "اخراجات", "time": "وقت ٹریکر",
            "tasks": "ٹاسکس", "reminders": "یاد دہانیاں", "reports": "رپورٹس", "calendar": "کیلنڈر",
@@ -96,7 +111,14 @@ LANGS = {
            "dark_mode": "ڈارک موڈ", "language": "زبان", "notifications": "اطلاعات",
            "activity_log": "سرگرمی لاگ", "tax_report": "ٹیکس رپورٹ", "profit_analysis": "منافع تجزیہ",
            "recurring": "بار بار رسیدیں", "schema": "ڈیٹا بیس", "currency": "کرنسی",
-           "copyright": "کاپی رائٹ LeadNest v2.3 • Orbit Galax"},
+           "copyright": "کاپی رائٹ LeadNest v2.3 • Orbit Galax",
+           "ai_bots": "ای آئی بوٹس", "ai_calculations": "ای آئی حسابات", "ai_alerts": "اسمارٹ الرٹس",
+           "ai_predictions": "پیش گوئیاں", "ai_sales_coach": "سیلز کوچ", "ai_email_writer": "ای میل لکھاری",
+           "ai_insights": "تجازیات", "ai_proposal": "پروپوزل لکھاری", "ai_assistant": "سی آر ایم اسسٹنٹ",
+           "ai_revenue_forecast": "آمدنی کی پیشگوئی", "ai_lead_score": "لیڈ اسکور", "ai_churn_risk": "چرن رسک",
+           "ai_tax": "ٹ�یکس کیلکولیٹر", "ai_margin": "منافع مارجن", "ai_breakeven": "بریک ایون",
+           "ai_hourly_cost": "گھنٹہ وار لاگت", "ai_send": "بھیجیں", "ai_reply": "جواب", "ai_typing": "سوچ رہا ہے...",
+           "ai_disclaimer": "ای آئی سے تیار شدہ۔ کلائنٹس کو بھیجنے سے پہلے ضرور جائزہ لیں۔"},
     "hi": {"name": "हिन्दी", "app_name": "LeadNest", "dashboard": "डैशबोर्ड", "clients": "क्लाइंट", "leads": "लीड्स",
            "projects": "प्रोजेक्ट", "payments": "भुगतान", "expenses": "खर्च", "time": "टाइम ट्रैकर",
            "tasks": "कार्य", "reminders": "रिमाइंडर", "reports": "रिपोर्ट", "calendar": "कैलेंडर",
@@ -109,7 +131,14 @@ LANGS = {
            "dark_mode": "डार्क मोड", "language": "भाषा", "notifications": "सूचनाएं",
            "activity_log": "गतिविधि लॉग", "tax_report": "टैक्स रिपोर्ट", "profit_analysis": "लाभ विश्लेषण",
            "recurring": "आवर्ती चालान", "schema": "डेटाबेस", "currency": "मुद्रा",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "एआई बॉट्स", "ai_calculations": "एआई गणनाएं", "ai_alerts": "स्मार्ट अलर्ट",
+           "ai_predictions": "भविष्यवाणियां", "ai_sales_coach": "सेल्स कोच", "ai_email_writer": "ईमेल लेखक",
+           "ai_insights": "इनसाइट्स", "ai_proposal": "प्रपोजल लेखक", "ai_assistant": "CRM सहायक",
+           "ai_revenue_forecast": "राजस्व पूर्वानुमान", "ai_lead_score": "लीड स्कोर", "ai_churn_risk": "चर्न जोखिम",
+           "ai_tax": "टैक्स कैलकुलेटर", "ai_margin": "लाभ मार्जिन", "ai_breakeven": "ब्रेक-ईवन",
+           "ai_hourly_cost": "घंटावार लागत", "ai_send": "भेजें", "ai_reply": "उत्तर", "ai_typing": "सोच रहा है...",
+           "ai_disclaimer": "एआई द्वारा उत्पन्न। क्लाइंट को भेजने से पहले हमेशा समीक्षा करें।"},
     "he": {"name": "עברית", "app_name": "LeadNest", "dashboard": "לוח בקרה", "clients": "לקוחות", "leads": "לידים",
            "projects": "פרויקטים", "payments": "תשלומים", "expenses": "הוצאות", "time": "מעקב זמן",
            "tasks": "משימות", "reminders": "תזכורות", "reports": "דוחות", "calendar": "יומן",
@@ -122,7 +151,14 @@ LANGS = {
            "dark_mode": "מצב כהה", "language": "שפה", "notifications": "התראות",
            "activity_log": "יומן פעילות", "tax_report": "דוח מס", "profit_analysis": "ניתוח רווח",
            "recurring": "חשבוניות חוזרות", "schema": "סכמת מסד נתונים", "currency": "מטבע",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "בוטי AI", "ai_calculations": "חישובי AI", "ai_alerts": "התראות חכמות",
+           "ai_predictions": "תחזיות", "ai_sales_coach": "מאמן מכירות", "ai_email_writer": "כותב אימיילים",
+           "ai_insights": "תובנות", "ai_proposal": "כותב הצעות", "ai_assistant": "עוזר CRM",
+           "ai_revenue_forecast": "תחזית הכנסות", "ai_lead_score": "ציון ליד", "ai_churn_risk": "סיכון נטישה",
+           "ai_tax": "מחשבון מס", "ai_margin": "שולי רווח", "ai_breakeven": "נקודת איזון",
+           "ai_hourly_cost": "עלות לשעה", "ai_send": "שלח", "ai_reply": "השב", "ai_typing": "חושב...",
+           "ai_disclaimer": "נוצר על ידי AI. תמיד לבדוק לפני שליחה ללקוחות."},
     "ar": {"name": "العربية", "app_name": "LeadNest", "dashboard": "لوحة التحكم", "clients": "العملاء", "leads": "العملاء المحتملون",
            "projects": "المشاريع", "payments": "المدفوعات", "expenses": "المصروفات", "time": "تتبع الوقت",
            "tasks": "المهام", "reminders": "التذكيرات", "reports": "التقارير", "calendar": "التقويم",
@@ -135,7 +171,14 @@ LANGS = {
            "dark_mode": "الوضع الداكن", "language": "اللغة", "notifications": "الإشعارات",
            "activity_log": "سجل النشاط", "tax_report": "تقرير الضرائب", "profit_analysis": "تحليل الأرباح",
            "recurring": "فواتير متكررة", "schema": "مخطط قاعدة البيانات", "currency": "العملة",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "بوتات الذكاء الاصطناعي", "ai_calculations": "حسابات الذكاء", "ai_alerts": "تنبيهات ذكية",
+           "ai_predictions": "توقعات", "ai_sales_coach": "مدرب المبيعات", "ai_email_writer": "كاتب البريد",
+           "ai_insights": "رؤى", "ai_proposal": "كاتب العروض", "ai_assistant": "مساعد CRM",
+           "ai_revenue_forecast": "توقعات الإيرادات", "ai_lead_score": "تقييم العميل", "ai_churn_risk": "مخاطر المغادرة",
+           "ai_tax": "حاسبة الضرائب", "ai_margin": "هامش الربح", "ai_breakeven": "نقطة التعادل",
+           "ai_hourly_cost": "التكلفة بالساعة", "ai_send": "إرسال", "ai_reply": "رد", "ai_typing": "يفكر...",
+           "ai_disclaimer": "مُنشأ بالذكاء الاصطناعي. راجع دائمًا قبل الإرسال للعملاء."},
     "fr": {"name": "Français", "app_name": "LeadNest", "dashboard": "Tableau de bord", "clients": "Clients", "leads": "Prospects",
            "projects": "Projets", "payments": "Paiements", "expenses": "Dépenses", "time": "Suivi du temps",
            "tasks": "Tâches", "reminders": "Rappels", "reports": "Rapports", "calendar": "Calendrier",
@@ -148,7 +191,14 @@ LANGS = {
            "dark_mode": "Mode sombre", "language": "Langue", "notifications": "Notifications",
            "activity_log": "Journal d'activité", "tax_report": "Rapport fiscal", "profit_analysis": "Analyse des profits",
            "recurring": "Factures récurrentes", "schema": "Schéma BDD", "currency": "Devise",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "Bots IA", "ai_calculations": "Calculs IA", "ai_alerts": "Alertes intelligentes",
+           "ai_predictions": "Prédictions", "ai_sales_coach": "Coach commercial", "ai_email_writer": "Rédacteur e-mail",
+           "ai_insights": "Aperçus", "ai_proposal": "Rédacteur de propositions", "ai_assistant": "Assistant CRM",
+           "ai_revenue_forecast": "Prévision de revenus", "ai_lead_score": "Score de lead", "ai_churn_risk": "Risque d'attrition",
+           "ai_tax": "Calculateur d'impôt", "ai_margin": "Marge bénéficiaire", "ai_breakeven": "Seuil de rentabilité",
+           "ai_hourly_cost": "Coût horaire", "ai_send": "Envoyer", "ai_reply": "Répondre", "ai_typing": "Réflexion...",
+           "ai_disclaimer": "Généré par IA. Toujours vérifier avant l'envoi aux clients."},
     "es": {"name": "Español", "app_name": "LeadNest", "dashboard": "Panel", "clients": "Clientes", "leads": "Leads",
            "projects": "Proyectos", "payments": "Pagos", "expenses": "Gastos", "time": "Control de tiempo",
            "tasks": "Tareas", "reminders": "Recordatorios", "reports": "Informes", "calendar": "Calendario",
@@ -161,7 +211,14 @@ LANGS = {
            "dark_mode": "Modo oscuro", "language": "Idioma", "notifications": "Notificaciones",
            "activity_log": "Registro de actividad", "tax_report": "Informe fiscal", "profit_analysis": "Análisis de beneficios",
            "recurring": "Facturas recurrentes", "schema": "Esquema BD", "currency": "Moneda",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "Bots IA", "ai_calculations": "Cálculos IA", "ai_alerts": "Alertas inteligentes",
+           "ai_predictions": "Predicciones", "ai_sales_coach": "Coach de ventas", "ai_email_writer": "Redactor de correos",
+           "ai_insights": "Insights", "ai_proposal": "Redactor de propuestas", "ai_assistant": "Asistente CRM",
+           "ai_revenue_forecast": "Pronóstico de ingresos", "ai_lead_score": "Puntuación de lead", "ai_churn_risk": "Riesgo de abandono",
+           "ai_tax": "Calculadora de impuestos", "ai_margin": "Margen de beneficio", "ai_breakeven": "Punto de equilibrio",
+           "ai_hourly_cost": "Costo por hora", "ai_send": "Enviar", "ai_reply": "Responder", "ai_typing": "Pensando...",
+           "ai_disclaimer": "Generado por IA. Revisar siempre antes de enviar a clientes."},
     "pt": {"name": "Português", "app_name": "LeadNest", "dashboard": "Painel", "clients": "Clientes", "leads": "Leads",
            "projects": "Projetos", "payments": "Pagamentos", "expenses": "Despesas", "time": "Controle de tempo",
            "tasks": "Tarefas", "reminders": "Lembretes", "reports": "Relatórios", "calendar": "Calendário",
@@ -174,7 +231,14 @@ LANGS = {
            "dark_mode": "Modo escuro", "language": "Idioma", "notifications": "Notificações",
            "activity_log": "Log de atividades", "tax_report": "Relatório fiscal", "profit_analysis": "Análise de lucro",
            "recurring": "Faturas recorrentes", "schema": "Esquema BD", "currency": "Moeda",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "Bots IA", "ai_calculations": "Cálculos IA", "ai_alerts": "Alertas inteligentes",
+           "ai_predictions": "Previsões", "ai_sales_coach": "Coach de vendas", "ai_email_writer": "Redator de e-mails",
+           "ai_insights": "Insights", "ai_proposal": "Redator de propostas", "ai_assistant": "Assistente CRM",
+           "ai_revenue_forecast": "Previsão de receita", "ai_lead_score": "Pontuação de lead", "ai_churn_risk": "Risco de churn",
+           "ai_tax": "Calculadora de impostos", "ai_margin": "Margem de lucro", "ai_breakeven": "Ponto de equilíbrio",
+           "ai_hourly_cost": "Custo por hora", "ai_send": "Enviar", "ai_reply": "Responder", "ai_typing": "Pensando...",
+           "ai_disclaimer": "Gerado por IA. Sempre revise antes de enviar aos clientes."},
     "tr": {"name": "Türkçe", "app_name": "LeadNest", "dashboard": "Panel", "clients": "Müşteriler", "leads": "Potansiyel",
            "projects": "Projeler", "payments": "Ödemeler", "expenses": "Giderler", "time": "Zaman Takibi",
            "tasks": "Görevler", "reminders": "Hatırlatıcılar", "reports": "Raporlar", "calendar": "Takvim",
@@ -187,7 +251,14 @@ LANGS = {
            "dark_mode": "Karanlık Mod", "language": "Dil", "notifications": "Bildirimler",
            "activity_log": "Aktivite Günlüğü", "tax_report": "Vergi Raporu", "profit_analysis": "Kâr Analizi",
            "recurring": "Tekrarlayan Faturalar", "schema": "Veritabanı Şeması", "currency": "Para Birimi",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "AI Botları", "ai_calculations": "AI Hesaplamaları", "ai_alerts": "Akıllı Uyarılar",
+           "ai_predictions": "Tahminler", "ai_sales_coach": "Satış Koçu", "ai_email_writer": "E-posta Yazarı",
+           "ai_insights": "İçgörüler", "ai_proposal": "Teklif Yazarı", "ai_assistant": "CRM Asistanı",
+           "ai_revenue_forecast": "Gelir Tahmini", "ai_lead_score": "Lead Skoru", "ai_churn_risk": "Kayıp Riski",
+           "ai_tax": "Vergi Hesaplayıcı", "ai_margin": "Kâr Marjı", "ai_breakeven": "Başabaş Noktası",
+           "ai_hourly_cost": "Saatlik Maliyet", "ai_send": "Gönder", "ai_reply": "Yanıtla", "ai_typing": "Düşünüyor...",
+           "ai_disclaimer": "AI tarafından üretildi. Müşterilere göndermeden önce her zaman kontrol edin."},
     "zh": {"name": "中文", "app_name": "LeadNest", "dashboard": "仪表板", "clients": "客户", "leads": "潜在客户",
            "projects": "项目", "payments": "付款", "expenses": "支出", "time": "时间跟踪",
            "tasks": "任务", "reminders": "提醒", "reports": "报告", "calendar": "日历",
@@ -200,7 +271,14 @@ LANGS = {
            "dark_mode": "深色模式", "language": "语言", "notifications": "通知",
            "activity_log": "活动日志", "tax_report": "税务报告", "profit_analysis": "利润分析",
            "recurring": "定期发票", "schema": "数据库架构", "currency": "货币",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "AI 机器人", "ai_calculations": "AI 计算", "ai_alerts": "智能提醒",
+           "ai_predictions": "预测", "ai_sales_coach": "销售教练", "ai_email_writer": "邮件撰写",
+           "ai_insights": "洞察", "ai_proposal": "提案撰写", "ai_assistant": "CRM 助手",
+           "ai_revenue_forecast": "收入预测", "ai_lead_score": "线索评分", "ai_churn_risk": "流失风险",
+           "ai_tax": "税务计算器", "ai_margin": "利润率", "ai_breakeven": "盈亏平衡点",
+           "ai_hourly_cost": "每小时成本", "ai_send": "发送", "ai_reply": "回复", "ai_typing": "思考中...",
+           "ai_disclaimer": "AI 生成。发送给客户前请始终审查。"},
     "ja": {"name": "日本語", "app_name": "LeadNest", "dashboard": "ダッシュボード", "clients": "クライアント", "leads": "リード",
            "projects": "プロジェクト", "payments": "支払い", "expenses": "経費", "time": "時間管理",
            "tasks": "タスク", "reminders": "リマインダー", "reports": "レポート", "calendar": "カレンダー",
@@ -213,7 +291,14 @@ LANGS = {
            "dark_mode": "ダークモード", "language": "言語", "notifications": "通知",
            "activity_log": "アクティビティログ", "tax_report": "税務レポート", "profit_analysis": "利益分析",
            "recurring": "定期請求書", "schema": "データベーススキーマ", "currency": "通貨",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "AIボット", "ai_calculations": "AI計算", "ai_alerts": "スマートアラート",
+           "ai_predictions": "予測", "ai_sales_coach": "セールスコーチ", "ai_email_writer": "メールライター",
+           "ai_insights": "インサイト", "ai_proposal": "提案ライター", "ai_assistant": "CRMアシスタント",
+           "ai_revenue_forecast": "収益予測", "ai_lead_score": "リードスコア", "ai_churn_risk": "解約リスク",
+           "ai_tax": "税計算機", "ai_margin": "利益率", "ai_breakeven": "損益分岐点",
+           "ai_hourly_cost": "時間コスト", "ai_send": "送信", "ai_reply": "返信", "ai_typing": "考え中...",
+           "ai_disclaimer": "AI生成。クライアントに送信する前に必ず確認してください。"},
     "ko": {"name": "한국어", "app_name": "LeadNest", "dashboard": "대시보드", "clients": "고객", "leads": "리드",
            "projects": "프로젝트", "payments": "결제", "expenses": "비용", "time": "시간 추적",
            "tasks": "작업", "reminders": "알림", "reports": "보고서", "calendar": "캘린더",
@@ -226,7 +311,14 @@ LANGS = {
            "dark_mode": "다크 모드", "language": "언어", "notifications": "알림",
            "activity_log": "활동 로그", "tax_report": "세금 보고서", "profit_analysis": "수익 분석",
            "recurring": "정기 청구서", "schema": "데이터베이스 스키마", "currency": "통화",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "AI 봇", "ai_calculations": "AI 계산", "ai_alerts": "스마트 알림",
+           "ai_predictions": "예측", "ai_sales_coach": "세일즈 코치", "ai_email_writer": "이메일 작성기",
+           "ai_insights": "인사이트", "ai_proposal": "제안서 작성기", "ai_assistant": "CRM 어시스턴트",
+           "ai_revenue_forecast": "수익 예측", "ai_lead_score": "리드 점수", "ai_churn_risk": "이탈 위험",
+           "ai_tax": "세금 계산기", "ai_margin": "이익률", "ai_breakeven": "손익분기점",
+           "ai_hourly_cost": "시간당 비용", "ai_send": "보내기", "ai_reply": "답장", "ai_typing": "생각 중...",
+           "ai_disclaimer": "AI 생성. 클라이언트에게 보내기 전 항상 검토하세요."},
     "ru": {"name": "Русский", "app_name": "LeadNest", "dashboard": "Панель", "clients": "Клиенты", "leads": "Лиды",
            "projects": "Проекты", "payments": "Платежи", "expenses": "Расходы", "time": "Учёт времени",
            "tasks": "Задачи", "reminders": "Напоминания", "reports": "Отчёты", "calendar": "Календарь",
@@ -239,7 +331,14 @@ LANGS = {
            "dark_mode": "Тёмный режим", "language": "Язык", "notifications": "Уведомления",
            "activity_log": "Журнал действий", "tax_report": "Налоговый отчёт", "profit_analysis": "Анализ прибыли",
            "recurring": "Повторяющиеся счета", "schema": "Схема БД", "currency": "Валюта",
-           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax"},
+           "copyright": "Copyright by LeadNest v2.3 • Built with Orbit Galax",
+           "ai_bots": "ИИ-боты", "ai_calculations": "ИИ-расчёты", "ai_alerts": "Умные оповещения",
+           "ai_predictions": "Прогнозы", "ai_sales_coach": "Тренер по продажам", "ai_email_writer": "Автор писем",
+           "ai_insights": "Инсайты", "ai_proposal": "Автор предложений", "ai_assistant": "CRM-ассистент",
+           "ai_revenue_forecast": "Прогноз доходов", "ai_lead_score": "Оценка лида", "ai_churn_risk": "Риск оттока",
+           "ai_tax": "Налоговый калькулятор", "ai_margin": "Маржа прибыли", "ai_breakeven": "Точка безубыточности",
+           "ai_hourly_cost": "Стоимость часа", "ai_send": "Отправить", "ai_reply": "Ответить", "ai_typing": "Думаю...",
+           "ai_disclaimer": "Создано ИИ. Всегда проверяйте перед отправкой клиентам."},
 }
 
 def t(key):
@@ -365,43 +464,258 @@ def authenticate(username, password):
     r=c.fetchone(); conn.close()
     return {"id":r[0],"username":r[1],"full_name":r[2],"role":r[3],"email":r[4]} if r else None
 
+# ===================== AI BOTS (z-ai CLI integration) =====================
+def ai_chat(prompt, system=None, timeout=120):
+    """Call z-ai CLI chat completion. Returns assistant text or error string."""
+    try:
+        cmd = ["z-ai", "chat", "--prompt", prompt]
+        if system:
+            cmd.extend(["--system", system])
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
+            out_path = f.name
+        cmd.extend(["--output", out_path])
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        if proc.returncode != 0:
+            return f"⚠️ AI request failed (exit {proc.returncode})."
+        with open(out_path) as f:
+            data = json.load(f)
+        try:
+            os.unlink(out_path)
+        except OSError:
+            pass
+        choices = data.get("choices", []) if isinstance(data, dict) else []
+        if choices:
+            return choices[0].get("message", {}).get("content", "").strip() or "⚠️ Empty response."
+        return "⚠️ No response from AI."
+    except subprocess.TimeoutExpired:
+        return "⚠️ AI request timed out. Try a shorter prompt."
+    except FileNotFoundError:
+        return "⚠️ z-ai CLI not available on this server."
+    except Exception as e:
+        return f"⚠️ AI error: {e}"
+
+def crm_snapshot():
+    """Build a compact textual snapshot of CRM state for AI context."""
+    parts = []
+    try:
+        cl = load_table("clients")
+        ld = load_table("leads")
+        pr = load_table("projects")
+        pa = load_table("payments")
+        ex = load_table("expenses")
+        tl = load_table("time_logs")
+        if not cl.empty:
+            parts.append(f"Clients ({len(cl)}): " + "; ".join(
+                f"{r['name']} ({r.get('company','')}, {r.get('status','')}, {r.get('platform','')}, LTV ${r.get('lifetime_value',0):.0f})"
+                for _, r in cl.head(15).iterrows()))
+        if not ld.empty:
+            parts.append(f"Leads ({len(ld)}): " + "; ".join(
+                f"{r['name']} ({r.get('company','')}, stage={r.get('stage','')}, priority={r.get('priority','')}, est ${r.get('estimated_value',0):.0f}, next follow-up {r.get('next_followup','')})"
+                for _, r in ld.head(15).iterrows()))
+        if not pr.empty:
+            parts.append(f"Projects ({len(pr)}): " + "; ".join(
+                f"{r['name']} ({r.get('client_name','')}, {r.get('status','')}, {r.get('progress',0)}%, budget ${r.get('budget',0):.0f}, deadline {r.get('deadline','')})"
+                for _, r in pr.head(15).iterrows()))
+        if not pa.empty:
+            te = pa[pa["status"] == "Paid"]["amount"].sum() if "status" in pa.columns else 0
+            pen = pa[pa["status"].isin(["Pending", "Overdue"])]["amount"].sum() if "status" in pa.columns else 0
+            parts.append(f"Payments: earned=${te:.2f}, pending=${pen:.2f}, total invoices={len(pa)}")
+        if not ex.empty:
+            parts.append(f"Expenses: total ${ex['amount'].sum():.2f} across {len(ex)} entries")
+        if not tl.empty:
+            parts.append(f"Time logs: {tl['hours'].sum():.1f} hours across {len(tl)} entries")
+        parts.append(f"Currency in use: {st.session_state.get('currency','USD')}. "
+                     f"Hourly rate: ${get_setting('hourly_rate','25')}. "
+                     f"Monthly goal: ${get_setting('monthly_goal','2500')}.")
+    except Exception as e:
+        parts.append(f"(snapshot error: {e})")
+    return "\n".join(parts)
+
+def crm_system_prompt(role="assistant"):
+    """System prompt that turns the LLM into a CRM-aware assistant."""
+    base = ("You are an AI assistant embedded inside LeadNest CRM (a Streamlit app for freelancers/agencies). "
+            "Be concise, actionable, and friendly. Use markdown for structure. "
+            "When suggesting actions, prefer specific next steps the user can take inside the CRM "
+            "(e.g. add follow-up, mark invoice overdue, send proposal). "
+            "Always respond in the user's language unless asked otherwise.\n\n")
+    snap = crm_snapshot()
+    return base + "CURRENT CRM SNAPSHOT:\n" + snap
+
 # ===================== PDF =====================
 class InvoicePDF(FPDF):
+    """Modern, professional invoice layout with gradient-style header banner."""
+    def __init__(self):
+        super().__init__()
+        self.set_auto_page_break(auto=True, margin=18)
+
     def header(self):
-        self.set_font("Helvetica","B",16)
-        self.cell(0,10, get_setting("company_name","LeadNest"), ln=True)
-        self.set_font("Helvetica","",9)
-        self.cell(0,5, get_setting("company_email",""), ln=True)
-        self.ln(4)
+        # Top color banner (gradient illusion via stacked rects)
+        w = self.w
+        # Deep indigo band
+        self.set_fill_color(37, 99, 235); self.rect(0, 0, w, 4, "F")
+        self.set_fill_color(30, 64, 175); self.rect(0, 4, w, 22, "F")
+        self.set_fill_color(15, 23, 42);  self.rect(0, 26, w, 1.2, "F")
+        # Brand block (left)
+        self.set_xy(14, 9)
+        self.set_text_color(255, 255, 255)
+        self.set_font("Helvetica", "B", 18)
+        self.cell(60, 8, get_setting("company_name", "LeadNest"), ln=False)
+        self.set_font("Helvetica", "", 8)
+        self.set_xy(14, 19)
+        cemail = get_setting("company_email", "")
+        cphone = get_setting("company_phone", "")
+        contact_line = " | ".join(x for x in [cemail, cphone] if x)
+        if not contact_line:
+            contact_line = "LeadNest CRM"
+        self.set_text_color(200, 215, 245)
+        self.cell(60, 5, contact_line, ln=False)
+        # Big "INVOICE" badge (right)
+        self.set_xy(w - 70, 8)
+        self.set_font("Helvetica", "B", 22)
+        self.set_text_color(255, 255, 255)
+        self.cell(56, 12, "INVOICE", align="R", ln=True)
+        self.set_xy(w - 70, 19)
+        self.set_font("Helvetica", "", 8)
+        self.set_text_color(200, 215, 245)
+        inv_id = str(self._inv_id) if hasattr(self, "_inv_id") else ""
+        self.cell(56, 5, f"#{inv_id}", align="R", ln=True)
+        # Reset text color
+        self.set_text_color(15, 23, 42)
+        self.ln(8)
+
     def footer(self):
-        self.set_y(-12); self.set_font("Helvetica","I",8)
-        self.cell(0,8,"Copyright by LeadNest v2.3 - Built with Orbit Galax", align="C")
+        self.set_y(-14)
+        # Thin divider
+        self.set_draw_color(203, 213, 225); self.set_line_width(0.3)
+        self.line(14, self.get_y(), self.w - 14, self.get_y())
+        self.set_y(-12)
+        self.set_font("Helvetica", "I", 8)
+        self.set_text_color(100, 116, 139)
+        self.cell(0, 6, "Thank you for your business. " +
+                  "Copyright by LeadNest v2.3 - Built with Orbit Galax",
+                  align="C")
+
+def _status_color(status):
+    s = (status or "").strip().lower()
+    return {
+        "paid":     (16, 185, 129),   # emerald
+        "pending":  (245, 158, 11),   # amber
+        "partial":  (59, 130, 246),  # blue
+        "overdue":  (239, 68, 68),    # red
+    }.get(s, (100, 116, 139))
 
 def generate_invoice_pdf(row, client=None):
-    pdf=InvoicePDF(); pdf.add_page()
-    pdf.set_font("Helvetica","B",14); pdf.cell(0,10,"INVOICE",ln=True,align="R")
-    pdf.set_font("Helvetica","",10)
-    pdf.cell(0,6,f"Invoice #: {row.get('id','')}",ln=True,align="R")
-    pdf.cell(0,6,f"Date: {row.get('invoice_date','')}",ln=True,align="R")
-    pdf.cell(0,6,f"Due: {row.get('due_date','')}",ln=True,align="R"); pdf.ln(6)
-    pdf.set_font("Helvetica","B",11); pdf.cell(0,7,"Bill To:",ln=True)
-    pdf.set_font("Helvetica","",10); pdf.cell(0,5, str(row.get("client_name","")), ln=True)
+    pdf = InvoicePDF()
+    pdf._inv_id = row.get("id", "")
+    pdf.add_page()
+    amt = float(row.get("amount", 0) or 0)
+
+    # ---- Bill-To / Invoice meta block ----
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_text_color(100, 116, 139)
+    pdf.cell(90, 5, "BILL TO", ln=False)
+    pdf.cell(0, 5, "INVOICE DETAILS", align="R", ln=True)
+    pdf.set_text_color(15, 23, 42)
+
+    # Left column: client info
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.cell(90, 6, str(row.get("client_name", "")), ln=False)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.cell(0, 6, f"Invoice #: {row.get('id','')}", align="R", ln=True)
     if client is not None:
-        pdf.cell(0,5, str(client.get("company","")), ln=True)
-        pdf.cell(0,5, str(client.get("email","")), ln=True)
-    pdf.ln(8)
-    pdf.set_fill_color(30,64,175); pdf.set_text_color(255,255,255); pdf.set_font("Helvetica","B",10)
-    pdf.cell(100,8,"Description",border=1,fill=True); pdf.cell(40,8,"Project",border=1,fill=True)
-    pdf.cell(40,8,"Amount",border=1,fill=True,align="R"); pdf.ln()
-    pdf.set_text_color(0,0,0); pdf.set_font("Helvetica","",10)
-    amt=float(row.get("amount",0) or 0)
-    pdf.cell(100,8,str(row.get("description","")),border=1)
-    pdf.cell(40,8,str(row.get("project_id","")),border=1)
-    pdf.cell(40,8,f"${amt:,.2f}",border=1,align="R"); pdf.ln()
-    pdf.set_font("Helvetica","B",11)
-    pdf.cell(140,8,"Total",border=1,align="R"); pdf.cell(40,8,f"${amt:,.2f}",border=1,align="R")
-    pdf.ln(12); pdf.set_font("Helvetica","",9)
-    pdf.cell(0,5,f"Status: {row.get('status','')}  |  Method: {row.get('method','')}",ln=True)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(71, 85, 105)
+        comp = client.get("company", "")
+        if comp:
+            pdf.cell(90, 5, str(comp), ln=False)
+        pdf.cell(0, 5, f"Issue Date: {row.get('invoice_date','')}", align="R", ln=True)
+        em = client.get("email", "")
+        if em:
+            pdf.cell(90, 5, str(em), ln=False)
+        ph = client.get("phone", "")
+        if ph:
+            pdf.cell(90, 5, str(ph), ln=True)
+        else:
+            pdf.ln(5)
+        country = client.get("country", "")
+        if country:
+            pdf.cell(90, 5, str(country), ln=False)
+    else:
+        pdf.ln(5)
+    pdf.cell(0, 5, f"Due Date: {row.get('due_date','')}", align="R", ln=True)
+    pdf.ln(6)
+
+    # ---- Status badge ----
+    status = str(row.get("status", ""))
+    r, g, b = _status_color(status)
+    pdf.set_fill_color(245, 247, 250)
+    pdf.set_draw_color(r, g, b)
+    pdf.set_text_color(r, g, b)
+    pdf.set_font("Helvetica", "B", 10)
+    badge_w = 38
+    x0 = pdf.get_x(); y0 = pdf.get_y()
+    pdf.rect(x0, y0, badge_w, 8, "DF")
+    pdf.set_xy(x0 + 2, y0 + 1)
+    pdf.cell(badge_w - 4, 6, f"[ {status.upper()} ]", align="C", ln=True)
+    pdf.set_text_color(15, 23, 42)
+    pdf.ln(6)
+
+    # ---- Items table header ----
+    pdf.set_fill_color(15, 23, 42)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(95, 9, "  Description", border=0, fill=True)
+    pdf.cell(40, 9, "Project", border=0, fill=True, align="C")
+    pdf.cell(40, 9, "Amount", border=0, fill=True, align="R")
+    pdf.ln()
+    # Thin accent line under header
+    pdf.set_draw_color(37, 99, 235); pdf.set_line_width(0.6)
+    pdf.line(14, pdf.get_y(), pdf.w - 14, pdf.get_y())
+    pdf.ln(0.5)
+
+    # Items row
+    pdf.set_text_color(15, 23, 42)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_fill_color(248, 250, 252)
+    pdf.cell(95, 10, f"  {str(row.get('description',''))}", border=0, fill=True)
+    pdf.cell(40, 10, str(row.get("project_id", "")), border=0, fill=True, align="C")
+    pdf.cell(40, 10, f"${amt:,.2f}", border=0, fill=True, align="R")
+    pdf.ln()
+
+    # Total row
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_fill_color(37, 99, 235)
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(135, 11, "TOTAL DUE", border=0, fill=True, align="R")
+    pdf.cell(40, 11, f"${amt:,.2f}", border=0, fill=True, align="R")
+    pdf.ln(10)
+    pdf.set_text_color(15, 23, 42)
+
+    # ---- Payment info block ----
+    pdf.set_draw_color(226, 232, 240); pdf.set_line_width(0.3)
+    y_block = pdf.get_y()
+    pdf.line(14, y_block, pdf.w - 14, y_block)
+    pdf.ln(2)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_text_color(100, 116, 139)
+    pdf.cell(0, 5, "PAYMENT INFORMATION", ln=True)
+    pdf.set_text_color(15, 23, 42)
+    pdf.set_font("Helvetica", "", 9)
+    method = str(row.get("method", ""))
+    terms = "Net 7 (unless otherwise agreed)"
+    pdf.cell(0, 5, f"Method: {method or 'Bank Transfer'}    |    Terms: {terms}", ln=True)
+    pdf.cell(0, 5, f"Status: {status}    |    Notes: {str(row.get('notes','')) or 'Thank you for your business.'}", ln=True)
+    pdf.ln(2)
+    pdf.line(14, pdf.get_y(), pdf.w - 14, pdf.get_y())
+
+    # ---- Footer note ----
+    pdf.ln(6)
+    pdf.set_font("Helvetica", "I", 8)
+    pdf.set_text_color(100, 116, 139)
+    pdf.multi_cell(0, 5,
+        "Please remit payment by the due date. Late payments may be subject to a 1.5% monthly fee. "
+        "For any questions about this invoice, contact the issuer using the details in the header above.")
+
     return bytes(pdf.output())
 
 def si(s):
@@ -419,32 +733,49 @@ def apply_css():
         section[data-testid="stSidebar"]{background:#1e293b!important}
         .stMetric{background:#1e293b;padding:14px;border-radius:12px;border:1px solid #334155}
         div[data-testid="stMetricValue"]{color:#38bdf8!important;font-size:1.35rem!important}
-        h1,h2,h3{color:#f1f5f9!important}
+        h1,h2,h3,h4,p,label,span,.stMarkdown{color:#e2e8f0!important}
         .stButton>button{border-radius:8px}
         .block-container{padding-top:1.2rem}
         </style>""", unsafe_allow_html=True)
     else:
-        # FIXED light mode - soft gray, readable, not pure white
+        # Light mode - high contrast, readable login + forms
         st.markdown("""<style>
-        .stApp{background:#f1f5f9;color:#0f172a}
+        .stApp{background:#eef2f7!important;color:#0f172a!important}
         section[data-testid="stSidebar"]{background:#e2e8f0!important}
+        .block-container{padding-top:1.5rem;background:#eef2f7!important}
+        h1,h2,h3,h4{color:#0f172a!important}
+        p,label,span,.stMarkdown,.stCaption{color:#1e293b!important}
         .stMetric{background:#ffffff;padding:14px;border-radius:12px;border:1px solid #cbd5e1;
                   box-shadow:0 1px 3px rgba(0,0,0,0.06)}
         div[data-testid="stMetricValue"]{color:#1e40af!important;font-size:1.35rem!important}
-        h1,h2,h3{color:#0f172a!important}
-        .stButton>button{border-radius:8px}
-        .block-container{padding-top:1.2rem;background:#f1f5f9}
+        div[data-testid="stMetricLabel"]{color:#475569!important}
+        /* Inputs readable */
+        .stTextInput input,.stTextInput>div>div>input,
+        .stSelectbox div[data-baseweb="select"]>div,
+        .stNumberInput input,.stTextArea textarea{
+          background:#ffffff!important;color:#0f172a!important;
+          border:1px solid #94a3b8!important;border-radius:8px!important;
+        }
+        .stTextInput label,.stSelectbox label,.stNumberInput label,.stTextArea label{
+          color:#0f172a!important;font-weight:600!important;
+        }
+        /* Tabs */
+        button[data-baseweb="tab"]{color:#334155!important}
+        button[data-baseweb="tab"][aria-selected="true"]{color:#1d4ed8!important}
+        /* Buttons */
+        .stButton>button{border-radius:8px;font-weight:600}
         div[data-testid="stDataFrame"]{background:#ffffff;border-radius:8px}
-        .stTextInput>div>div>input, .stSelectbox>div>div{background:#ffffff}
+        /* Login page spacing */
+        [data-testid="stForm"]{background:#ffffff;padding:20px;border-radius:12px;
+          border:1px solid #cbd5e1;box-shadow:0 2px 8px rgba(0,0,0,.06)}
         </style>""", unsafe_allow_html=True)
 
-# ===================== INIT =====================
-init_db()
-for k,v in [("logged_in",False),("user",None),("dark_mode",False),("client_portal",False),
-            ("portal_client",None),("lang","en"),("currency","USD")]:
-    if k not in st.session_state: st.session_state[k]=v
-# load saved prefs
+
 if "prefs_loaded" not in st.session_state:
+    try:
+        init_db()
+    except Exception:
+        pass
     st.session_state.lang = get_setting("lang","en")
     st.session_state.currency = get_setting("currency","USD")
     st.session_state.prefs_loaded = True
@@ -476,9 +807,96 @@ if load_table("clients").empty:
         save_row("payments", dict(zip(["id","project_id","client_name","description","invoice_date","amount","due_date","status","payment_date","method","notes","is_recurring","recurring_interval","next_invoice_date"], r)))
 
 # ===================== AUTH =====================
+
+def render_top_header(user, notif_count=0):
+    """Top bar: Logo + Search + Notifications + User"""
+    dark = st.session_state.get("dark_mode", False)
+    bg = "#1e293b" if dark else "#ffffff"
+    border = "#334155" if dark else "#cbd5e1"
+    text_c = "#e2e8f0" if dark else "#0f172a"
+    muted = "#94a3b8" if dark else "#64748b"
+    accent = "#38bdf8" if dark else "#2563eb"
+
+    st.markdown(f"""
+    <style>
+    .ln-header {{
+        background:{bg}; border:1px solid {border}; border-radius:14px;
+        padding:10px 16px; margin-bottom:14px;
+        display:flex; align-items:center; justify-content:space-between; gap:12px;
+        box-shadow:0 1px 3px rgba(0,0,0,.06);
+    }}
+    .ln-brand {{ display:flex; align-items:center; gap:10px; min-width:140px; }}
+    .ln-logo {{
+        width:36px; height:36px; border-radius:10px;
+        background:linear-gradient(135deg,#3b82f6,#22d3ee);
+        display:flex; align-items:center; justify-content:center;
+        color:white; font-weight:800; font-size:16px;
+    }}
+    .ln-title {{ font-weight:800; font-size:1.15rem; color:{text_c}; letter-spacing:-0.02em; }}
+    .ln-sub {{ font-size:0.72rem; color:{muted}; }}
+    .ln-right {{ display:flex; align-items:center; gap:14px; }}
+    .ln-bell {{
+        background:rgba(59,130,246,.12); color:{accent};
+        border-radius:999px; padding:6px 12px; font-size:0.85rem; font-weight:600;
+        border:1px solid rgba(59,130,246,.25);
+    }}
+    .ln-user {{
+        background:rgba(148,163,184,.12); color:{text_c};
+        border-radius:999px; padding:6px 12px; font-size:0.85rem; font-weight:600;
+        border:1px solid {border};
+    }}
+    </style>
+    <div class="ln-header">
+      <div class="ln-brand">
+        <div class="ln-logo">L</div>
+        <div>
+          <div class="ln-title">LeadNest</div>
+          <div class="ln-sub">v2.3 · CRM</div>
+        </div>
+      </div>
+      <div class="ln-right">
+        <div class="ln-bell">🔔 {notif_count}</div>
+        <div class="ln-user">👤 {user.get('full_name','User')} · {user.get('role','admin')}</div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Search row under header
+    q = st.text_input("Search clients, leads, projects...", value=st.session_state.get("global_search",""), key="hdr_search", placeholder="Type to search...")
+    st.session_state.global_search = q
+    if q and len(q.strip()) >= 2:
+        ql = q.strip().lower()
+        hits = []
+        try:
+            for table, cols, label in [
+                ("clients", ["name","company","email","country"], "Client"),
+                ("leads", ["name","company","email","stage"], "Lead"),
+                ("projects", ["name","client_name","status"], "Project"),
+            ]:
+                df = load_table(table)
+                if df.empty: continue
+                for _, r in df.iterrows():
+                    blob = " ".join(str(r.get(c,"")) for c in cols).lower()
+                    if ql in blob:
+                        title = r.get("name") or r.get("id")
+                        hits.append(f"**{label}:** {title}")
+            if hits:
+                with st.expander(f"Search results ({len(hits)})", expanded=True):
+                    for h in hits[:20]:
+                        st.markdown(f"- {h}")
+            else:
+                st.caption("No matches found.")
+        except Exception:
+            pass
+
+
 def show_login():
-    st.markdown("## LeadNest")
-    st.caption("Built with Orbit Galax")
+    st.markdown("""
+    <div style="text-align:center;padding:1.5rem 0 1rem 0;">
+      <h1 style="color:#0f172a!important;font-size:2rem;margin-bottom:0.25rem;">LeadNest</h1>
+      <p style="color:#334155!important;font-size:0.95rem;">Built with Orbit Galax</p>
+    </div>
+    """, unsafe_allow_html=True)
     tab1,tab2,tab3 = st.tabs([t("login"), t("create_account"), t("client_portal")])
     with tab1:
         if not user_exists(): st.info("Create an admin account first.")
@@ -541,9 +959,15 @@ def show_client_portal():
                     pdfb=generate_invoice_pdf(inv.to_dict(), ci)
                     st.download_button("Download", data=pdfb, file_name=f"{inv['id']}.pdf", mime="application/pdf")
 
-if not st.session_state.logged_in:
+
+# Session state safety init
+for _k, _v in [("logged_in", False), ("user", None), ("dark_mode", False), ("client_portal", False), ("portal_client", None), ("lang", "en"), ("currency", "USD"), ("global_search", "")]:
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
+
+if not st.session_state.get('logged_in', False):
     show_login(); st.stop()
-if st.session_state.client_portal:
+if st.session_state.get('client_portal', False):
     show_client_portal(); st.stop()
 
 user=st.session_state.user
@@ -590,7 +1014,11 @@ if not tasks_df.empty: notif += len(tasks_df[tasks_df["status"]!="Done"])
 if not rem_df.empty: notif += len(rem_df[rem_df["status"]=="Pending"])
 st.sidebar.markdown(f"**{t('notifications')}**  `{notif}`")
 
-pages = [t("dashboard"), t("clients"), t("leads"), t("projects"), t("payments"),
+# Top header (main area)
+render_top_header(user, notif)
+
+
+pages = [t("dashboard"), t("ai_bots"), t("clients"), t("leads"), t("projects"), t("payments"),
          t("expenses"), t("time"), t("tasks"), t("reminders"), t("calendar"),
          t("reports"), t("activity_log"), t("settings"), t("schema")]
 if role == "staff":
@@ -657,6 +1085,452 @@ if page == t("dashboard"):
         od=ld[(ld["nf"]<pd.Timestamp(date.today()))&(~ld["stage"].isin(["Won","Lost"]))]
         if not od.empty: st.dataframe(od[["id","name","company","stage","priority","next_followup"]], use_container_width=True, hide_index=True)
         else: st.success(t("no_overdue"))
+
+# ===================== AI BOTS PAGE =====================
+elif page == t("ai_bots"):
+    st.title("🤖 " + t("ai_bots"))
+    st.caption(t("ai_disclaimer"))
+
+    ai_sub = st.tabs([
+        "💬 " + t("ai_assistant"),
+        "🎯 " + t("ai_sales_coach"),
+        "✉️ " + t("ai_email_writer"),
+        "📄 " + t("ai_proposal"),
+        "💡 " + t("ai_insights"),
+        "🧮 " + t("ai_calculations"),
+        "🔔 " + t("ai_alerts"),
+        "🔮 " + t("ai_predictions"),
+    ])
+
+    # ---------- CRM Assistant (chat) ----------
+    with ai_sub[0]:
+        st.subheader(t("ai_assistant"))
+        st.caption("Ask anything about your CRM — clients, leads, projects, payments, expenses. The assistant has live access to your data.")
+        if "ai_chat_msgs" not in st.session_state:
+            st.session_state.ai_chat_msgs = []
+        # Quick suggestion chips
+        chips = ["Summarize my pipeline", "Which leads are overdue?", "Top 3 clients by LTV", "What should I focus on today?"]
+        sc1, sc2, sc3, sc4 = st.columns(4)
+        for col, chip in zip([sc1, sc2, sc3, sc4], chips):
+            if col.button(chip, use_container_width=True, key=f"chip_{chip}"):
+                st.session_state.ai_chat_msgs.append({"role": "user", "content": chip})
+                with st.spinner(t("ai_typing")):
+                    ans = ai_chat(chip, system=crm_system_prompt())
+                st.session_state.ai_chat_msgs.append({"role": "assistant", "content": ans})
+                st.rerun()
+        # Display chat history
+        for msg in st.session_state.ai_chat_msgs:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+        # Input box
+        q = st.chat_input("Type your question...")
+        if q:
+            st.session_state.ai_chat_msgs.append({"role": "user", "content": q})
+            with st.chat_message("user"):
+                st.markdown(q)
+            with st.spinner(t("ai_typing")):
+                ans = ai_chat(q, system=crm_system_prompt())
+            st.session_state.ai_chat_msgs.append({"role": "assistant", "content": ans})
+            with st.chat_message("assistant"):
+                st.markdown(ans)
+        if st.button("🗑️ Clear chat", key="clear_ai_chat"):
+            st.session_state.ai_chat_msgs = []
+            st.rerun()
+
+    # ---------- Sales Coach ----------
+    with ai_sub[1]:
+        st.subheader("🎯 " + t("ai_sales_coach"))
+        st.caption("Get actionable coaching on your hottest leads and stuck deals.")
+        leads_df = load_table("leads")
+        if leads_df.empty:
+            st.info("No leads yet — add a few to get coaching.")
+        else:
+            hot = leads_df[leads_df["priority"] == "Hot"] if "priority" in leads_df.columns else leads_df
+            sel_lead = st.selectbox("Pick a lead to coach on",
+                                    [""] + leads_df["name"].tolist())
+            if sel_lead:
+                row = leads_df[leads_df["name"] == sel_lead].iloc[0]
+                prompt = (
+                    f"Act as a senior sales coach. Here is a lead from LeadNest CRM:\n"
+                    f"- Name: {row.get('name','')}\n- Company: {row.get('company','')}\n"
+                    f"- Stage: {row.get('stage','')}\n- Priority: {row.get('priority','')}\n"
+                    f"- Estimated value: ${row.get('estimated_value',0):.0f}\n"
+                    f"- Next follow-up: {row.get('next_followup','')}\n"
+                    f"- Notes: {row.get('notes','')}\n\n"
+                    f"Give me: (1) the next 3 concrete actions to move this deal forward, "
+                    f"(2) likely objections and how to handle them, (3) a suggested follow-up timeline. "
+                    f"Be specific and tactical.")
+                if st.button(t("ai_send"), type="primary", key="coach_btn"):
+                    with st.spinner(t("ai_typing")):
+                        ans = ai_chat(prompt, system=crm_system_prompt())
+                    st.markdown(ans)
+
+    # ---------- Email Writer ----------
+    with ai_sub[2]:
+        st.subheader("✉️ " + t("ai_email_writer"))
+        st.caption("Drafts professional emails for follow-ups, payment reminders, proposals.")
+        clients_df = load_table("clients")
+        leads_df = load_table("leads")
+        etype = st.selectbox("Email type", ["Follow-up to lead", "Payment reminder", "Welcome new client", "Project update", "Re-engage cold lead"])
+        recipient = st.selectbox("Recipient", [""] + (clients_df["name"].tolist() if not clients_df.empty else []) + (leads_df["name"].tolist() if not leads_df.empty else []))
+        tone = st.selectbox("Tone", ["Professional & friendly", "Formal", "Casual", "Urgent"])
+        extra = st.text_area("Optional context / specifics")
+        if st.button("✍️ Draft email", type="primary", key="email_btn"):
+            if not recipient:
+                st.warning("Pick a recipient.")
+            else:
+                prompt = (f"Write a {tone.lower()} email for this scenario: {etype}. "
+                          f"Recipient: {recipient}. CRM context: {crm_snapshot()}. "
+                          f"Additional context: {extra or 'none'}. "
+                          f"Keep it concise (120–180 words), with a clear subject line and a single CTA.")
+                with st.spinner(t("ai_typing")):
+                    ans = ai_chat(prompt, system=crm_system_prompt())
+                st.markdown(ans)
+                st.download_button("Download .txt", data=ans, file_name=f"email_{recipient.replace(' ','_')}.txt")
+
+    # ---------- Proposal Writer ----------
+    with ai_sub[3]:
+        st.subheader("📄 " + t("ai_proposal"))
+        st.caption("Generate a proposal draft for a lead or new project.")
+        leads_df = load_table("leads")
+        projects_df = load_table("projects")
+        target = st.selectbox("For lead", [""] + (leads_df["name"].tolist() if not leads_df.empty else []))
+        scope = st.text_area("Scope of work (bullet points)", height=120)
+        budget = st.number_input("Proposed budget USD", min_value=0.0, value=1000.0, step=100.0)
+        timeline = st.text_input("Timeline (e.g. 4 weeks)")
+        if st.button("📝 Generate proposal", type="primary", key="prop_btn"):
+            if not target or not scope:
+                st.warning("Pick a lead and fill scope.")
+            else:
+                prompt = (f"Draft a professional project proposal for lead '{target}'. "
+                          f"Scope: {scope}. Budget: ${budget:.0f}. Timeline: {timeline}. "
+                          f"Sections: Summary, Objectives, Deliverables, Timeline, Pricing, Terms, Next Steps. "
+                          f"Use clean markdown. 300–450 words.")
+                with st.spinner(t("ai_typing")):
+                    ans = ai_chat(prompt, system=crm_system_prompt())
+                st.markdown(ans)
+                st.download_button("Download .md", data=ans, file_name=f"proposal_{target.replace(' ','_')}.md")
+
+    # ---------- Insights ----------
+    with ai_sub[4]:
+        st.subheader("💡 " + t("ai_insights"))
+        st.caption("AI-generated business insights based on your CRM data.")
+        if st.button("🔍 Generate insights", type="primary", key="ins_btn"):
+            prompt = ("Analyze the following LeadNest CRM snapshot and produce 5–7 actionable insights. "
+                      "Group them under: Revenue, Pipeline, Clients, Risks. Be specific (cite names/numbers). "
+                      "End with the single most important action for this week.\n\n" + crm_snapshot())
+            with st.spinner(t("ai_typing")):
+                ans = ai_chat(prompt, system=crm_system_prompt())
+            st.markdown(ans)
+
+    # ---------- AI Calculations ----------
+    with ai_sub[5]:
+        st.subheader("🧮 " + t("ai_calculations"))
+        st.caption("Smart calculators that combine your CRM data with AI reasoning.")
+        calc_tab1, calc_tab2, calc_tab3, calc_tab4 = st.tabs([
+            t("ai_tax"), t("ai_margin"), t("ai_breakeven"), t("ai_hourly_cost")
+        ])
+        pa = load_table("payments"); ex = load_table("expenses"); tl = load_table("time_logs")
+
+        # Tax
+        with calc_tab1:
+            st.markdown("**" + t("ai_tax") + "**")
+            year = st.selectbox("Year", [2026, 2025, 2024], key="tax_year")
+            income = 0; expense = 0
+            if not pa.empty and "invoice_date" in pa.columns:
+                p = pa.copy(); p["invoice_date"] = pd.to_datetime(p["invoice_date"], errors="coerce")
+                yr = p[(p["invoice_date"].dt.year == year) & (p["status"] == "Paid")]
+                income = yr["amount"].sum() if not yr.empty else 0
+            if not ex.empty and "date" in ex.columns:
+                e = ex.copy(); e["date"] = pd.to_datetime(e["date"], errors="coerce")
+                ey = e[e["date"].dt.year == year]
+                expense = ey["amount"].sum() if not ey.empty else 0
+            net = income - expense
+            rate = st.slider("Estimated tax rate %", 5, 50, 25)
+            tax_due = max(0, net * rate / 100)
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Gross income", fmt_money(income))
+            c2.metric("Deductible expenses", fmt_money(expense))
+            c3.metric("Net taxable", fmt_money(net))
+            c4.metric(f"Est. tax @ {rate}%", fmt_money(tax_due))
+            if st.button("🤖 Get AI tax optimization tips", key="tax_ai"):
+                prompt = (f"My CRM numbers for {year}: gross income ${income:.2f}, expenses ${expense:.2f}, "
+                          f"net ${net:.2f}, estimated tax rate {rate}% = ${tax_due:.2f} due. "
+                          f"List 5 practical, freelancer-friendly tax optimization tips and what to log in the CRM to track them.")
+                with st.spinner(t("ai_typing")):
+                    st.markdown(ai_chat(prompt, system=crm_system_prompt()))
+
+        # Profit margin
+        with calc_tab2:
+            st.markdown("**" + t("ai_margin") + "**")
+            projects = load_table("projects")
+            if projects.empty:
+                st.info("No projects.")
+            else:
+                pname = st.selectbox("Project", projects["name"].tolist(), key="marg_proj")
+                row = projects[projects["name"] == pname].iloc[0]
+                budget = float(row.get("budget", 0) or 0)
+                hourly = float(get_setting("hourly_rate", 25))
+                hrs = 0
+                if not tl.empty and "project_id" in tl.columns:
+                    hrs = tl[tl["project_id"] == row["id"]]["hours"].sum() if not tl[tl["project_id"] == row["id"]].empty else 0
+                cost = hrs * hourly
+                profit = budget - cost
+                margin = (profit / budget * 100) if budget else 0
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Budget", fmt_money(budget))
+                c2.metric(f"Hours × ${hourly:.0f}/h", fmt_money(cost))
+                c3.metric("Profit", fmt_money(profit))
+                c4.metric("Margin %", f"{margin:.1f}%")
+                if st.button("🤖 How to improve this margin?", key="marg_ai"):
+                    prompt = (f"Project '{pname}': budget ${budget:.2f}, hours logged {hrs:.1f}, hourly ${hourly:.2f}, "
+                              f"cost ${cost:.2f}, profit ${profit:.2f}, margin {margin:.1f}%. "
+                              f"Give me 4 specific tactics to lift this margin above 40% without losing the client.")
+                    with st.spinner(t("ai_typing")):
+                        st.markdown(ai_chat(prompt, system=crm_system_prompt()))
+
+        # Break-even
+        with calc_tab3:
+            st.markdown("**" + t("ai_breakeven") + "**")
+            monthly_goal = float(get_setting("monthly_goal", 2500))
+            hourly = float(get_setting("hourly_rate", 25))
+            monthly_exp = ex["amount"].sum() if not ex.empty else 0
+            be_hours = (monthly_goal + monthly_exp) / hourly if hourly else 0
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Monthly goal", fmt_money(monthly_goal))
+            c2.metric("Monthly expenses", fmt_money(monthly_exp))
+            c3.metric(f"Break-even hours @ ${hourly:.0f}/h", f"{be_hours:.1f} h")
+            if st.button("🤖 AI plan to hit break-even", key="be_ai"):
+                prompt = (f"Monthly goal ${monthly_goal:.2f}, expenses ${monthly_exp:.2f}, hourly rate ${hourly:.2f}, "
+                          f"break-even {be_hours:.1f} hours. Suggest a 4-week plan to hit this, "
+                          f"using my actual pipeline and clients from the snapshot.")
+                with st.spinner(t("ai_typing")):
+                    st.markdown(ai_chat(prompt, system=crm_system_prompt()))
+
+        # Hourly cost
+        with calc_tab4:
+            st.markdown("**" + t("ai_hourly_cost") + "**")
+            des_income = st.number_input("Desired monthly income", value=2000.0, step=100.0)
+            avail_h = st.number_input("Hours you can work / week", value=30.0, step=1.0)
+            overhead = st.number_input("Monthly overhead (software, internet...)", value=50.0, step=10.0)
+            billable_ratio = st.slider("Billable ratio %", 40, 100, 70)
+            monthly_billable = avail_h * 4.33 * (billable_ratio / 100)
+            required_rate = (des_income + overhead) / monthly_billable if monthly_billable else 0
+            st.metric("Recommended hourly rate", fmt_money(required_rate))
+            st.caption(f"Based on {monthly_billable:.1f} billable hours/month.")
+            if st.button("🤖 Validate this rate for my market", key="hr_ai"):
+                prompt = (f"I want monthly income ${des_income:.0f}, can work {avail_h:.0f} h/week, "
+                          f"overhead ${overhead:.0f}, billable ratio {billable_ratio}%. "
+                          f"Required hourly rate: ${required_rate:.2f}. Is this realistic for a freelance CRM user? "
+                          f"Suggest 3 ways to increase the billable ratio and 2 ways to justify a higher rate.")
+                with st.spinner(t("ai_typing")):
+                    st.markdown(ai_chat(prompt, system=crm_system_prompt()))
+
+    # ---------- Smart Alerts ----------
+    with ai_sub[6]:
+        st.subheader("🔔 " + t("ai_alerts"))
+        st.caption("Auto-generated alerts based on your CRM state. No AI call needed for the scan; AI adds prioritization.")
+        alerts = []
+        today = date.today()
+        leads_df = load_table("leads")
+        if not leads_df.empty:
+            ld = leads_df.copy()
+            ld["nf"] = pd.to_datetime(ld["next_followup"], errors="coerce")
+            od = ld[(ld["nf"] < pd.Timestamp(today)) & (~ld["stage"].isin(["Won", "Lost"]))]
+            for _, r in od.iterrows():
+                days_late = (today - r["nf"].date()).days if pd.notna(r["nf"]) else 0
+                alerts.append({"severity": "HIGH" if days_late > 7 else "MED",
+                               "type": "Overdue follow-up",
+                               "msg": f"{r['name']} ({r.get('company','')}) — {days_late}d late. Stage: {r['stage']}.",
+                               "action": f"Update stage or reschedule follow-up."})
+        projects_df = load_table("projects")
+        if not projects_df.empty:
+            for _, r in projects_df.iterrows():
+                try:
+                    dl = pd.to_datetime(r["deadline"], errors="coerce")
+                    if pd.notna(dl) and r["status"] == "In Progress":
+                        days = (dl.date() - today).days
+                        if days < 0:
+                            alerts.append({"severity": "HIGH", "type": "Project past deadline",
+                                           "msg": f"{r['name']} for {r['client_name']} — {abs(days)}d overdue. Progress {r['progress']}%.",
+                                           "action": "Mark complete, or update deadline."})
+                        elif days <= 7:
+                            alerts.append({"severity": "MED", "type": "Deadline approaching",
+                                           "msg": f"{r['name']} — {days}d left, progress {r['progress']}%.",
+                                           "action": "Push progress or negotiate extension."})
+                except Exception:
+                    pass
+        pa = load_table("payments")
+        if not pa.empty:
+            for _, r in pa.iterrows():
+                if r["status"] in ("Pending", "Partial", "Overdue"):
+                    try:
+                        dd = pd.to_datetime(r["due_date"], errors="coerce")
+                        if pd.notna(dd):
+                            days = (dd.date() - today).days
+                            if days < 0:
+                                alerts.append({"severity": "HIGH", "type": "Unpaid invoice overdue",
+                                               "msg": f"{r['id']} — {r['client_name']} — {fmt_money(r['amount'])} — {abs(days)}d late.",
+                                               "action": "Send payment reminder or mark as Overdue."})
+                            elif days <= 3:
+                                alerts.append({"severity": "LOW", "type": "Invoice due soon",
+                                               "msg": f"{r['id']} — {r['client_name']} — {fmt_money(r['amount'])} — due in {days}d.",
+                                               "action": "Confirm client will pay on time."})
+                    except Exception:
+                        pass
+        clients_df = load_table("clients")
+        if not clients_df.empty:
+            for _, r in clients_df.iterrows():
+                if r["status"] == "Active":
+                    try:
+                        sd = pd.to_datetime(r["start_date"], errors="coerce")
+                        if pd.notna(sd):
+                            months = (today - sd.date()).days / 30
+                            if months > 3 and float(r.get("lifetime_value", 0) or 0) < 200:
+                                alerts.append({"severity": "MED", "type": "Stagnant client",
+                                               "msg": f"{r['name']} active {months:.0f} months but LTV only ${r.get('lifetime_value',0):.0f}.",
+                                               "action": "Upsell or schedule a check-in."})
+                    except Exception:
+                        pass
+        if not alerts:
+            st.success("✅ No critical alerts. You're on top of things.")
+        else:
+            sev_color = {"HIGH": "🔴", "MED": "🟡", "LOW": "🟢"}
+            alerts_sorted = sorted(alerts, key=lambda a: {"HIGH": 0, "MED": 1, "LOW": 2}[a["severity"]])
+            st.metric("Total alerts", len(alerts))
+            st.metric("High priority", sum(1 for a in alerts if a["severity"] == "HIGH"))
+            for a in alerts_sorted:
+                st.markdown(f"**{sev_color[a['severity']]} {a['severity']} — {a['type']}**  ")
+                st.caption(f"{a['msg']} → {a['action']}")
+                st.divider()
+            if st.button("🤖 Prioritize with AI", key="alert_ai"):
+                prompt = ("Here are my current CRM alerts. Rank them by urgency+impact, "
+                          "and tell me the top 3 to handle today with concrete scripts/actions:\n\n" +
+                          "\n".join(f"- [{a['severity']}] {a['type']}: {a['msg']}" for a in alerts_sorted))
+                with st.spinner(t("ai_typing")):
+                    st.markdown(ai_chat(prompt, system=crm_system_prompt()))
+
+    # ---------- Predictions ----------
+    with ai_sub[7]:
+        st.subheader("🔮 " + t("ai_predictions"))
+        st.caption("AI-driven forecasts and risk scores. Uses your CRM data + LLM reasoning.")
+        pred_tab1, pred_tab2, pred_tab3 = st.tabs([
+            t("ai_revenue_forecast"), t("ai_lead_score"), t("ai_churn_risk")
+        ])
+
+        # Revenue forecast
+        with pred_tab1:
+            st.markdown("**" + t("ai_revenue_forecast") + "**")
+            pa = load_table("payments"); ex = load_table("expenses")
+            te = pa[pa["status"] == "Paid"]["amount"].sum() if not pa.empty and "status" in pa.columns else 0
+            pen = pa[pa["status"].isin(["Pending", "Overdue"])]["amount"].sum() if not pa.empty and "status" in pa.columns else 0
+            tex = ex["amount"].sum() if not ex.empty else 0
+            pipeline_value = 0
+            leads_df = load_table("leads")
+            if not leads_df.empty:
+                active = leads_df[~leads_df["stage"].isin(["Won", "Lost"])]
+                pipeline_value = active["estimated_value"].sum() if not active.empty else 0
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Earned (YTD)", fmt_money(te))
+            c2.metric("Pending", fmt_money(pen))
+            c3.metric("Pipeline", fmt_money(pipeline_value))
+            c4.metric("Expenses", fmt_money(tex))
+            months = st.slider("Forecast horizon (months)", 1, 6, 3)
+            if st.button("🔮 Forecast next " + str(months) + " months", type="primary", key="forecast_btn"):
+                prompt = (f"Predict my revenue for the next {months} months. "
+                         f"Current earned ${te:.2f}, pending ${pen:.2f}, pipeline (estimated) ${pipeline_value:.2f}, "
+                         f"expenses ${tex:.2f}. Assume a realistic conversion rate per lead stage "
+                         f"(New 5%, Contacted 15%, Proposal Sent 35%, Negotiation 65%). "
+                         f"Give me a month-by-month table in markdown, then 3 risks and 3 opportunities.")
+                with st.spinner(t("ai_typing")):
+                    st.markdown(ai_chat(prompt, system=crm_system_prompt()))
+
+        # Lead score
+        with pred_tab2:
+            st.markdown("**" + t("ai_lead_score") + "**")
+            leads_df = load_table("leads")
+            if leads_df.empty:
+                st.info("No leads to score.")
+            else:
+                sel = st.selectbox("Pick lead", leads_df["name"].tolist(), key="lead_score_sel")
+                row = leads_df[leads_df["name"] == sel].iloc[0]
+                # Heuristic score
+                stage_pts = {"New": 10, "Contacted": 30, "Proposal Sent": 55, "Negotiation": 75, "Won": 100, "Lost": 0}
+                pri_pts = {"Hot": 25, "Warm": 15, "Cold": 5}
+                base = stage_pts.get(row.get("stage", ""), 20) + pri_pts.get(row.get("priority", ""), 10)
+                try:
+                    nf = pd.to_datetime(row.get("next_followup"), errors="coerce")
+                    if pd.notna(nf):
+                        days_until = (nf.date() - today).days
+                        if days_until < 0:
+                            base -= 10
+                        elif days_until <= 3:
+                            base += 10
+                except Exception:
+                    pass
+                ev = float(row.get("estimated_value", 0) or 0)
+                if ev > 3000: base += 10
+                elif ev > 1000: base += 5
+                score = max(0, min(100, base))
+                # Display gauge
+                st.progress(score / 100, text=f"{score}/100 — " + ("🔥 Hot" if score >= 75 else ("⚠️ Warm" if score >= 45 else "❄️ Cold")))
+                if st.button("🤖 Get AI conversion strategy", key="lead_score_ai"):
+                    prompt = (f"Score this lead 0–100 and explain. Lead: {row.get('name','')} ({row.get('company','')}), "
+                              f"stage={row.get('stage','')}, priority={row.get('priority','')}, "
+                              f"estimated value ${ev:.0f}, next follow-up {row.get('next_followup','')}. "
+                              f"My heuristic score is {score}/100. Validate or challenge it, and give 3 actions to push it above 80.")
+                    with st.spinner(t("ai_typing")):
+                        st.markdown(ai_chat(prompt, system=crm_system_prompt()))
+
+        # Churn risk
+        with pred_tab3:
+            st.markdown("**" + t("ai_churn_risk") + "**")
+            clients_df = load_table("clients")
+            if clients_df.empty:
+                st.info("No clients.")
+            else:
+                sel = st.selectbox("Pick client", clients_df["name"].tolist(), key="churn_sel")
+                crow = clients_df[clients_df["name"] == sel].iloc[0]
+                # Heuristic churn risk
+                risk = 0
+                rating = float(crow.get("rating", 3) or 3)
+                if rating <= 2: risk += 40
+                elif rating == 3: risk += 20
+                try:
+                    sd = pd.to_datetime(crow.get("start_date"), errors="coerce")
+                    if pd.notna(sd):
+                        months = (today - sd.date()).days / 30
+                        if months > 6 and crow.get("status") == "On Hold":
+                            risk += 30
+                        if months > 12:
+                            risk += 15
+                except Exception:
+                    pass
+                if crow.get("status") == "Cancelled": risk = 100
+                elif crow.get("status") == "On Hold": risk += 25
+                # Check recent project activity
+                projects_df = load_table("projects")
+                if not projects_df.empty and "client_name" in projects_df.columns:
+                    cp = projects_df[projects_df["client_name"] == sel]
+                    if cp.empty:
+                        risk += 15
+                    else:
+                        last_dl = pd.to_datetime(cp["deadline"], errors="coerce").max()
+                        if pd.notna(last_dl):
+                            months_since = (today - last_dl.date()).days / 30
+                            if months_since > 3: risk += 20
+                risk = max(0, min(100, int(risk)))
+                col1, col2 = st.columns([3, 1])
+                col1.progress(risk / 100, text=f"Churn risk: {risk}% — " +
+                              ("🔴 High" if risk >= 60 else ("🟡 Medium" if risk >= 30 else "🟢 Low")))
+                col2.metric("Client rating", f"{rating:.0f}★")
+                if st.button("🤖 Get AI retention plan", key="churn_ai"):
+                    prompt = (f"Predict churn risk for client {crow.get('name','')} ({crow.get('company','')}). "
+                              f"Status: {crow.get('status','')}, rating {rating}/5, "
+                              f"lifetime value ${crow.get('lifetime_value',0):.0f}, start {crow.get('start_date','')}. "
+                              f"My heuristic risk: {risk}%. Suggest a 30-day retention plan with 4 specific actions.")
+                    with st.spinner(t("ai_typing")):
+                        st.markdown(ai_chat(prompt, system=crm_system_prompt()))
 
 # ===================== CLIENTS =====================
 elif page == t("clients"):
